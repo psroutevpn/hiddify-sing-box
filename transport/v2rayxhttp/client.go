@@ -125,6 +125,18 @@ func NewClient(ctx context.Context, dialer N.Dialer, serverAddr M.Socksaddr, opt
 func (c *Client) DialContext(ctx context.Context) (net.Conn, error) {
 	options := c.options
 	mode := c.options.Mode
+	// PSRoute fix: auto-resolve mode for Reality connections (hiddify-app#2082)
+	// When Download is nil (Reality, no separate download settings),
+	// "auto" or empty mode should resolve to "stream-one" (bidirectional),
+	// matching xray-core behavior. Without this, mode falls through to
+	// packet-up which breaks Telegram MTProto uploads.
+	if mode == "auto" || mode == "" {
+		if options.Download == nil {
+			mode = "stream-one"
+		} else {
+			mode = "stream-up"
+		}
+	}
 	sessionIdUuid := uuid.New()
 	requestURL := c.getRequestURL(sessionIdUuid.String())
 	requestURL2 := c.getRequestURL2(sessionIdUuid.String())
